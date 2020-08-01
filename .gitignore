@@ -7,3 +7,4 @@ statistical_detail_report_august_2019.json
 commentout.js
 *.py
 .vscode/
+*.log

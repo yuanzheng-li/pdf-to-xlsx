@@ -44,9 +44,14 @@ const contentPattern = {
 
 function parseData(pages) {
   const normalizedPages = normalizeRows(pages);
+  console.info(
+    'There are %d pages after filtering out empty pages and normalization',
+    normalizedPages.length
+  );
   const detailPages = normalizedPages.filter((page) => {
     return headerPattern.detail.pattern.test(page[headerPattern.detail.row][0]);
   });
+  console.info('There are %d details pages', detailPages.length);
   console.log(Object.keys(detailPages[0]).sort((a, b) => parseFloat(a) - parseFloat(b)));
 }
 
@@ -101,11 +106,8 @@ function readPdf(filename) {
 }
 
 module.exports = async function parse(filename) {
-  const pages = await readPdf('statistical_detail_report_august_2019.pdf');
+  const pages = await readPdf(filename);
+  console.info('Read %d pages', pages.length);
   const parsedData = parseData(pages);
   return parsedData;
 };
-
-const pages = readPdf('statistical_detail_report_august_2019.pdf').then((pages) => {
-  const parsedData = parseData(pages);
-});

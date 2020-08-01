@@ -5,8 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "lodash": "^4.17.19",
-    "pdfreader": "^1.0.7",
-    "winston": "^3.3.3"
+    "pdfreader": "^1.0.7"
   },
   "devDependencies": {},
   "scripts": {
