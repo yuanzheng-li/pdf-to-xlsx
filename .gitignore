@@ -1,3 +1,9 @@
+~$demo.xlsx
 demo.xlsx
+demo.pdf
 statistical_detail_report_august_2019.pdf
+statistical_detail_report_august_2019.json
 /node_modules
+commentout.js
+*.py
+.vscode/
