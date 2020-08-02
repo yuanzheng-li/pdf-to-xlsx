@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
+    "exceljs": "^4.1.1",
     "lodash": "^4.17.19",
     "pdfreader": "^1.0.7"
   },
