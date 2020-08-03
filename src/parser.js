@@ -47,50 +47,109 @@ const contentPattern = {
 function extractData(pages) {
   const data = [];
   pages.forEach((page) => {
-    const pageNo = page['1.00'][1];
+    const pageNo = page['1.00'][1].text;
 
-    const county =
-      page[headerPattern.county.row][1] || page[headerPattern.county.altRow][0];
-    console.assert(!_.isUndefined(county), `county not found on page ${pageNo}`);
+    let county = '';
 
-    const reportDate = page[headerPattern.reportDate.row][1];
-    const year = reportDate.match(headerPattern.reportDate.pattern)[0];
+    if (!_.isUndefined(page[headerPattern.county.row][1])) {
+      county += page[headerPattern.county.row][1].text;
+    } 
+    if (page[headerPattern.county.altRow] && !_.isUndefined(page[headerPattern.county.altRow][0])) {
+      county +=
+        county.length === 0
+          ? `${page[headerPattern.county.altRow][0].text}`
+          : ` ${page[headerPattern.county.altRow][0].text}`;
+    }
+
+    console.assert(
+      county.length !== 0,
+      `county not found on page ${pageNo}`
+    );
+
+    const reportDate = page[headerPattern.reportDate.row][1].text;
+    const year = parseInt(reportDate.match(headerPattern.reportDate.pattern)[0]);
     console.assert(
       !_.isUndefined(year) && !_.isUndefined(reportDate),
       `report year not found on page ${pageNo}`
     );
 
-    const keys = Object.keys(page).sort((a, b) => parseFloat(a) - parseFloat(b));
-    keys.filter((key) => {
-      return parseFloat(key) > 7;
-    }).forEach((key) => {
-      const content = page[key];
-      console.assert(!_.isUndefined(content), `content not found on page ${pageNo}`);
-      const item = {};
-      if(contentPattern.id.test(content[0]) && content.length === 18) {
-        const usefulContent = [...content.slice(0, 3), ...content.slice(4)];
-        usefulContent.forEach((value, index) => {
-          item[columns[index].key] = value;
-        });
-        
-        item.county = county;
-        item.year = year;
+    const keys = Object.keys(page).sort((a, b) => parseFloat(a) - parseFloat(b)).filter((key) => parseFloat(key) > 7);
 
-        data.push(item);
-      } else if(contentPattern.type.test(content[0])) {
-        const matched = content[0].match(contentPattern.type);
+    keys.forEach((key, index) => {
+      const curContent = page[key];
+      console.assert(!_.isUndefined(curContent), `content not found on page ${pageNo}`);
+      const item = {};
+
+      if(contentPattern.type.test(curContent[0].text)) {
+        const matched = curContent[0].text.match(contentPattern.type);
         let qris = '';
         let type = '';
         if(!_.isUndefined(matched[1]) && !_.isUndefined(matched[2])) {
-          qris = matched[1];
+          qris = parseInt(matched[1]);
           type = matched[2];
         } else {
           type = matched[0];
         }
 
-        data[data.length - 1].qris = qris;
-        data[data.length - 1].type = type;
+        const prevContent = page[keys[index - 1]];
+        console.assert(!_.isUndefined(prevContent), `Did not find the main row with data on page ${pageNo} and row ${key}`);
+
+        for(let i = 1; i < curContent.length; i++) {
+          const prevItem = _.find(prevContent, { x: curContent[i].x });
+          console.assert(!_.isUndefined(prevItem), `Did not find the data element with two rows on page ${pageNo} and row ${key}`);
+          const prevText = prevItem.text;
+          const curText = curContent[i].text;
+
+          prevItem.text = `${prevText} ${curText}`;
+        }
+
+        if(contentPattern.id.test(prevContent[0].text) && prevContent.length === 18) {
+          const usefulContent = [...prevContent.slice(0, 3), ...prevContent.slice(4)];
+
+          usefulContent.forEach((value, index) => {
+            value = value.text;
+            if(columns[index].int) {
+              value = parseInt(value);
+            }
+            item[columns[index].key] = value;
+          });
+          
+          item.county = county;
+          item.year = year;
+          item.qris = qris;
+          item.type = type;
+        }
+
+        data.push(item);
       }
+
+      // if(contentPattern.id.test(curContent[0]) && curContent.length === 18) {
+      //   const usefulContent = [...curContent.slice(0, 3), ...curContent.slice(4)];
+      //   usefulContent.forEach((value, index) => {
+      //     if(columns[index].int) {
+      //       value = parseInt(value);
+      //     }
+      //     item[columns[index].key] = value;
+      //   });
+        
+      //   item.county = county;
+      //   item.year = year;
+
+      //   data.push(item);
+      // } else if(contentPattern.type.test(curContent[0])) {
+      //   const matched = curContent[0].match(contentPattern.type);
+      //   let qris = '';
+      //   let type = '';
+      //   if(!_.isUndefined(matched[1]) && !_.isUndefined(matched[2])) {
+      //     qris = parseInt(matched[1]);
+      //     type = matched[2];
+      //   } else {
+      //     type = matched[0];
+      //   }
+
+      //   data[data.length - 1].qris = qris;
+      //   data[data.length - 1].type = type;
+      // }
     });
   });
   return data;
@@ -103,7 +162,7 @@ function parseData(pages) {
     normalizedPages.length
   );
   const detailPages = normalizedPages.filter((page) => {
-    return headerPattern.detail.pattern.test(page[headerPattern.detail.row][0]);
+    return headerPattern.detail.pattern.test(page[headerPattern.detail.row][0].text);
   });
   console.info('There are %d details pages', detailPages.length);
 
@@ -153,7 +212,10 @@ function readPdf(filename) {
           rows = {}; // clear rows for next page
         } else if (item.text) {
           // accumulate text items into rows object, per line
-          (rows[item.y] = rows[item.y] || []).push(item.text);
+          (rows[item.y] = rows[item.y] || []).push({
+            text: item.text,
+            x: parseFloat(item.x).toFixed(2),
+          });
         }
       });
     });

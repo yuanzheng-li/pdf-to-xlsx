@@ -15,61 +15,73 @@ const columns = [
     header: 'ind_month',
     key: 'indMonth',
     width: 10,
+    int: true, // not a property of exceljs
   },
   {
     header: 'infant',
     key: 'infant',
     width: 10,
+    int: true,
   },
   {
     header: 'age1',
     key: 'age1',
     width: 10,
+    int: true,
   },
   {
     header: 'age2',
     key: 'age2',
     width: 10,
+    int: true,
   },
   {
     header: 'age3',
     key: 'age3',
     width: 10,
+    int: true,
   },
   {
     header: 'age4',
     key: 'age4',
     width: 10,
+    int: true,
   },
   {
     header: 'age5',
     key: 'age5',
     width: 10,
+    int: true,
   },
   {
     header: 'age5_12',
     key: 'age512',
     width: 10,
+    int: true,
   },
   {
     header: 'enrollment_total',
     key: 'enrollmentTotal',
     width: 20,
+    int: true,
   },
   {
     header: 'licensed_capacity',
     key: 'licensedCapacity',
     width: 20,
+    int: true,
   },
   {
     header: 'max_capacity',
     key: 'maxCapacity',
     width: 20,
+    int: true,
   },
   {
     header: 'no_emp',
     key: 'noEmp',
     width: 10,
+    int: true,
   },
   {
     header: 'category_operation',
@@ -90,6 +102,7 @@ const columns = [
     header: 'qris',
     key: 'qris',
     width: 5,
+    int: true,
   },
   {
     header: 'type',
@@ -105,6 +118,7 @@ const columns = [
     header: 'year',
     key: 'year',
     width: 10,
+    int: true,
   },
 ];
 
