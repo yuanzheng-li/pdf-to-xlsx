@@ -25,11 +25,6 @@ const headerPattern = {
     altRow: 4.05,
     pattern: null,
   },
-  // the row is array with only 1 item. We just need to get the 2nd item.
-  // homeCenter: {
-  //   row: 3.30,
-  //   pattern: null,
-  // }
 };
 
 // 1st row of 1st content is at 7.42. It's an array of needed 18 items.
@@ -96,13 +91,24 @@ function extractData(pages) {
 
         for(let i = 1; i < curContent.length; i++) {
           const prevItem = _.find(prevContent, { x: curContent[i].x });
-          console.assert(!_.isUndefined(prevItem), `Did not find the data element with two rows on page ${pageNo} and row ${key}`);
+          console.assert(
+            !_.isUndefined(prevItem),
+            `Did not find the multi-line data element on page ${pageNo} with id ${prevContent[0].text}`
+          );
           const prevText = prevItem.text;
           const curText = curContent[i].text;
 
           prevItem.text = `${prevText} ${curText}`;
         }
 
+        // length == 16 no category operation and operation site;
+        // 17 no category operation or operation site;
+        // 18 normal;
+        // 19 index at 1 and index at 2 should be merged as the operation name;
+        // 20 index at 1, 2, 3 should be merged as the operation name;
+        // 36 only need the 0 - 17
+        // TODO: handle different length scenarios.
+        // TODO: create category operation list and operation site list to handle length == 17
         if(contentPattern.id.test(prevContent[0].text) && prevContent.length === 18) {
           const usefulContent = [...prevContent.slice(0, 3), ...prevContent.slice(4)];
 
@@ -122,34 +128,6 @@ function extractData(pages) {
 
         data.push(item);
       }
-
-      // if(contentPattern.id.test(curContent[0]) && curContent.length === 18) {
-      //   const usefulContent = [...curContent.slice(0, 3), ...curContent.slice(4)];
-      //   usefulContent.forEach((value, index) => {
-      //     if(columns[index].int) {
-      //       value = parseInt(value);
-      //     }
-      //     item[columns[index].key] = value;
-      //   });
-        
-      //   item.county = county;
-      //   item.year = year;
-
-      //   data.push(item);
-      // } else if(contentPattern.type.test(curContent[0])) {
-      //   const matched = curContent[0].match(contentPattern.type);
-      //   let qris = '';
-      //   let type = '';
-      //   if(!_.isUndefined(matched[1]) && !_.isUndefined(matched[2])) {
-      //     qris = parseInt(matched[1]);
-      //     type = matched[2];
-      //   } else {
-      //     type = matched[0];
-      //   }
-
-      //   data[data.length - 1].qris = qris;
-      //   data[data.length - 1].type = type;
-      // }
     });
   });
   return data;
