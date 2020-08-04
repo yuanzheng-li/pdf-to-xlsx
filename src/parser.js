@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const { PdfReader } = require('pdfreader');
-const _ = require('lodash/core');
+const _ = require('lodash');
 
 const columns = require('./worksheetColumns');
 
@@ -30,12 +30,13 @@ const headerPattern = {
 // 1st row of 1st content is at 7.42. It's an array of needed 18 items.
 // 2nd row of 1st content is at 7.89. It's an array of only 1 string. There are two types of the string.
 //    1. "1 Star H 2C". We need to get "1" and "H".
-//    2. a string with only letters. e.g. "Prov C", "Other", "Temp C", "Lic SDC", "Temp FCC Lic", etc.
+//    2. a string with letters and digits. e.g. "Prov C", "Other", "Temp C", "Lic SDC", "Temp FCC Lic", "GS110SP" etc.
+//      year: 2019; ID:73000237 has GS110SP
 
 // 1st row of 1st content is at 9.72. 2nd row of 1st content is at 10.19
 const contentPattern = {
   id: /^\d+$/i,
-  type: /(\d)\sStar\s([H|C])|[a-zA-Z\s]+/,
+  type: /(\d)\sStar\s([H|C])|^[a-zA-Z][a-zA-Z-\d\s]+/,
   discard: /^\([2|3]\)$/i,
 };
 
@@ -71,7 +72,11 @@ function extractData(pages) {
     const keys = Object.keys(page).sort((a, b) => parseFloat(a) - parseFloat(b)).filter((key) => parseFloat(key) > 7);
 
     keys.forEach((key, index) => {
-      const curContent = page[key];
+      // curContent could have duplicate items
+      // year: 2019; ID:73000237 has GS110SPid: 19000347
+      // year: 2019; id: 3655257
+      // year: 2019; id: 99000085
+      const curContent = _.uniqBy(page[key], 'x');
       console.assert(!_.isUndefined(curContent), `content not found on page ${pageNo}`);
       const item = {};
 
@@ -101,16 +106,67 @@ function extractData(pages) {
           prevItem.text = `${prevText} ${curText}`;
         }
 
-        // length == 16 no category operation and operation site;
-        // 17 no category operation or operation site;
-        // 18 normal;
-        // 19 index at 1 and index at 2 should be merged as the operation name;
-        // 20 index at 1, 2, 3 should be merged as the operation name;
-        // 36 only need the 0 - 17
-        // TODO: handle different length scenarios.
-        // TODO: create category operation list and operation site list to handle length == 17
-        if(contentPattern.id.test(prevContent[0].text) && prevContent.length === 18) {
-          const usefulContent = [...prevContent.slice(0, 3), ...prevContent.slice(4)];
+        // TODO: pay attention when parsing data from other years
+        if(contentPattern.id.test(prevContent[0].text)) {
+          if(prevContent.length !== 18) {
+            console.warn(`Outlier: length is ${prevContent.length}. ID is ${prevContent[0].text}. Year: ${year}`);
+          }
+          let usefulContent = [];
+          if(prevContent.length === 16) {
+            // length == 16 no category operation and operation site;
+            usefulContent = [...prevContent.slice(0, 3), ...prevContent.slice(4, 15), '', '', prevContent[15]];
+          } else if(prevContent.length === 17) {
+            // 17 no category operation or operation site;
+            // TODO: create category operation list and operation site list to handle length == 17??
+            // 37.58 38.23 38.09 37.16 36.78 37.58 37.25 38.19 36.83 37.30 37.30 42.13 42.92
+            // if x < 40, the item on index 15 is category operation; x > 40 operation site
+            if(parseFloat(prevContent[15].x) > 40) {
+              usefulContent = [
+                ...prevContent.slice(0, 3),
+                ...prevContent.slice(4, 15),
+                '',
+                ...prevContent.slice(15),
+              ];
+            } else {
+              usefulContent = [
+                ...prevContent.slice(0, 3),
+                ...prevContent.slice(4, 16),
+                '',
+                prevContent[16],
+              ];
+            }
+          } else if(prevContent.length === 18) {
+            // 18 normal;
+            usefulContent = [...prevContent.slice(0, 3), ...prevContent.slice(4)];
+          } else if(prevContent.length === 19) {
+            // 19 index at 1 and index at 2 should be merged as the operation name;
+            usefulContent = [
+              prevContent[0],
+              {
+                text: prevContent[1].text + prevContent[2].text,
+                x: prevContent[1].x,
+              },
+              prevContent[3],
+              ...prevContent.slice(5)
+            ];
+          } else if(prevContent.length === 20) {
+            // 20 index at 1, 2, 3 should be merged as the operation name;
+            usefulContent = [
+              prevContent[0],
+              {
+                text: prevContent[1].text + prevContent[2].text + prevContent[3].text,
+                x: prevContent[1].x,
+              },
+              prevContent[4],
+              ...prevContent.slice(6),
+            ];
+          } else if(prevContent.length === 36) {
+            // 36 only need the 0 - 17
+            usefulContent = [
+              ...prevContent.slice(0, 3),
+              ...prevContent.slice(4, 18),
+            ];
+          }
 
           usefulContent.forEach((value, index) => {
             value = value.text;
