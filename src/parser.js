@@ -1,6 +1,5 @@
 'use strict';
 
-const fs = require('fs');
 const { PdfReader } = require('pdfreader');
 const _ = require('lodash');
 
@@ -261,43 +260,37 @@ function normalizeRows(pages) {
   });
 }
 
-function readPdf(filename) {
+function readPdf(buffer) {
   const pages = [];
   let rows = {}; // indexed by y-position
 
   return new Promise((resolve, reject) => {
-    fs.readFile(filename, (err, pdfBuffer) => {
+    new PdfReader().parseBuffer(buffer, (err, item) => {
       if (err) {
         reject(err);
       }
 
-      new PdfReader().parseBuffer(pdfBuffer, (err, item) => {
-        if (err) {
-          reject(err);
-        }
-
-        if (!item) {
-          // end of file
-          pages.push(rows);
-          resolve(pages);
-        } else if (item.page) {
-          // new page
-          pages.push(rows);
-          rows = {}; // clear rows for next page
-        } else if (item.text) {
-          // accumulate text items into rows object, per line
-          (rows[item.y] = rows[item.y] || []).push({
-            text: item.text,
-            x: parseFloat(item.x).toFixed(2),
-          });
-        }
-      });
+      if (!item) {
+        // end of file
+        pages.push(rows);
+        resolve(pages);
+      } else if (item.page) {
+        // new page
+        pages.push(rows);
+        rows = {}; // clear rows for next page
+      } else if (item.text) {
+        // accumulate text items into rows object, per line
+        (rows[item.y] = rows[item.y] || []).push({
+          text: item.text,
+          x: parseFloat(item.x).toFixed(2),
+        });
+      }
     });
   });
 }
 
-module.exports = async function parse(filename) {
-  const pages = await readPdf(filename);
+module.exports = async function parse(buffer) {
+  const pages = await readPdf(buffer);
   console.info('Read %d pages', pages.length);
   const parsedData = parseData(pages);
   return parsedData;
