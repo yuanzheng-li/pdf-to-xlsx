@@ -5,48 +5,51 @@ const parse = require('./parser');
 const write = require('./writer');
 const Bufferer = require('./bufferer');
 
-function getFilenames(startYear, endYear) {
-  const filenames = [];
+function getFiles(startYear, endYear) {
+  const files = [];
 
   if(startYear < 2005 || startYear > 2019) {
     console.error('start year not valid');
-    return filenames;
+    return files;
   }
 
   if(endYear < 2005 || endYear > 2019) {
     console.error('end year not valid');
-    return filenames;
+    return files;
   }
 
   if(endYear < startYear) {
     console.error('end year is earlier than start year');
-    return filenames;
+    return files;
   }
 
   for(let i = endYear; i >= startYear; i--) {
-    filenames.push(`./NC-pdf/statistical_detail_report_september_${i}.pdf`);
+    files.push({
+      name: `./NC-pdf/statistical_detail_report_september_${i}.pdf`,
+      year: i,
+    });
   }
 
-  return filenames;
+  return files;
 }
 
-function parseAndConcat(dataAll) {
+function parseAndConcat(dataAll, year) {
   return async (buffer) => {
-    const dataPerFile = await parse(buffer);
+    const dataPerFile = await parse(buffer, year);
     dataAll.push(...dataPerFile);
   };
 }
 
-async function transform(filenames) {
+async function transform(files) {
   const dataAll = [];
 
-  const parsingQueue = filenames.reduce(async (result, filename) => {
+  const parsingQueue = files.reduce(async (result, file) => {
     await result;
 
     return new Promise((resolve, reject) => {
-      const reader = createReadStream(filename);
+      const reader = createReadStream(file.name);
       const bufferer = new Bufferer({
-        onEnd: parseAndConcat(dataAll),
+        onEnd: parseAndConcat(dataAll, file.year),
       });
 
       reader
@@ -68,6 +71,7 @@ async function transform(filenames) {
   }
 }
 
-const filenames = getFilenames(2019, 2019);
-transform(filenames);
+const files = getFiles(2016, 2016);
+// const files = getFiles(2017, 2019);
+transform(files);
 
