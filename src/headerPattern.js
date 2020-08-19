@@ -21,8 +21,20 @@ const headerPattern2017 = {
   },
 };
 
+// table headers are rows with y position <= 4.94
 const headerPattern2016 = {
-
+  // In details page, y = 4.38 only has one item with text equals "   ID/    OPERATION NAME             IND.  S   INF ---CHILD BY AGES-----------  --CHILDREN-- NO "
+  // In summary page, y = 4.38 has two items. The 1st item with text equals "SHIFT NUMBER PCT  OF OPERATION   NUMBER   PCT     SITE       NUMBER  PCT   PERMIT         NUMBER  PCT  NUMBER   PCT  NUMBER   P"
+  // We use whether line 4.38 has ID/ or not to determine whether its detail or summary page
+  detail: {
+    row: 4.38,
+    pattern: /ID\//i,
+  },
+  // county is all uppercase, and we want only the first of each word to be uppercase
+  county: {
+    row: 2.13,
+    pattern: /\d\s([\w|\s]+)/i
+  },
 };
 
 module.exports = {

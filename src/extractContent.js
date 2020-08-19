@@ -4,11 +4,6 @@ const _ = require('lodash');
 const { contentPattern2017, contentPattern2016 } = require('./contentPattern');
 const columns = require('./worksheetColumns');
 
-/**
- * before 2016, 5-STAR
- * before 2016, operation name can take up 3 lines
- * before 2016, need another way to differentiate detail page and summary page, maybe the table header?
- */
 function extractContent2017(data, page, pageHeader, year) {
   const keys = Object.keys(page)
     .sort((a, b) => parseFloat(a) - parseFloat(b))
@@ -145,7 +140,11 @@ function extractContent2017(data, page, pageHeader, year) {
   });
 }
 
-function extractContent2016() {
+/**
+ * 2016 and earlier, 5-STAR
+ * 2016 and earlier, operation name can take up 3 lines. It's fine to extract only 2 lines.
+ */
+function extractContent2016(data, page, pageHeader, year) {
 
 }
 

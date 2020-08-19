@@ -15,7 +15,7 @@ function extractData(pages, year) {
     if(year > 2016) {
       extractContent2017(data, page, extractHeader2017(page), year);
     } else {
-      extractContent2017(data, page, extractHeader2017(page), year);
+      extractContent2016(data, page, extractHeader2016(page), year);
     }
   });
 
@@ -32,8 +32,8 @@ function parseData(pages, year) {
     if(year > 2016) {
       return headerPattern2017.detail.pattern.test(page[headerPattern2017.detail.row][0].text);
     } else {
-      return headerPattern2017.detail.pattern.test(
-        page[headerPattern2017.detail.row][0].text
+      return headerPattern2016.detail.pattern.test(
+        page[headerPattern2016.detail.row][0].text
       );
     }
   });
