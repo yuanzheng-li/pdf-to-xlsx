@@ -1,9 +1,16 @@
 'use strict';
 const _ = require('lodash');
 
-const { contentPattern2017, contentPattern2016 } = require('./contentPattern');
+const contentPattern = require('./contentPattern');
 const columns = require('./worksheetColumns');
 
+// 1st row of 1st content is at 7.42. It's an array of needed 18 items.
+// 2nd row of 1st content is at 7.89. It's an array of only 1 string. There are two types of the string.
+//    1. "1 Star H 2C". We need to get "1" and "H".
+//    2. a string with letters and digits. e.g. "Prov C", "Other", "Temp C", "Lic SDC", "Temp FCC Lic", "GS110SP" etc.
+//      year: 2019; ID:73000237 has GS110SP
+
+// 1st row of 1st content is at 9.72. 2nd row of 1st content is at 10.19
 function extractContent2017(data, page, pageHeader, year) {
   const keys = Object.keys(page)
     .sort((a, b) => parseFloat(a) - parseFloat(b))
@@ -21,8 +28,8 @@ function extractContent2017(data, page, pageHeader, year) {
     );
     const item = {};
 
-    if (contentPattern2017.type.test(curContent[0].text)) {
-      const matched = curContent[0].text.match(contentPattern2017.type);
+    if (contentPattern.type.test(curContent[0].text)) {
+      const matched = curContent[0].text.match(contentPattern.type);
       let qris = '';
       let type = '';
       if (!_.isUndefined(matched[1]) && !_.isUndefined(matched[2])) {
@@ -51,7 +58,7 @@ function extractContent2017(data, page, pageHeader, year) {
       }
 
       // TODO: pay attention when parsing data from other years
-      if (contentPattern2017.id.test(prevContent[0].text)) {
+      if (contentPattern.id.test(prevContent[0].text)) {
         if (prevContent.length !== 18) {
           console.warn(
             `Outlier: length is ${prevContent.length}. ID is ${prevContent[0].text}. Year: ${year}`
@@ -144,6 +151,28 @@ function extractContent2017(data, page, pageHeader, year) {
  * 2016 and earlier, 5-STAR
  * 2016 and earlier, operation name can take up 3 lines. It's fine to extract only 2 lines.
  */
+// 1st row of 1st content is at 6.06. It's an array with 2 items.
+//    1. 1st item has text with data except SCC
+//    2. 2nd item has text with only SCC
+// 2nd row of 1st content is at 6.63. It's an array of only 1 item.
+// The text of the item has type info and possibly operation name, category operation, and operation site.
+// There are 2 types of type info:
+//    1. "1-STAR H". We need to get "1" and "H".
+//    2. a string with letters and digits. e.g. "Prov C", "Other", "Temp C", "Lic SDC", "Temp FCC Lic", "GS110SP" etc.
+// Operation Name could contain special characters:
+//    ,#/&'-
+// Category Operation could contain special characters:
+//    /
+
+// How to handle missing operation site?
+//    ID: 12000380; ID: 12000381; ID:41001816; ID: 60002276
+// How to handle missing operation site and category operation?
+//    ID: 53000329; ID: 60003551; ID: 60003581
+// How to handle missing category operation?
+//    ID: 60003701; ID: 60003337; ID: 60003389; ID: 60003718
+
+// pay attention to ID: 02000035; ID: 02000085
+// most likely need to trim() every string
 function extractContent2016(data, page, pageHeader, year) {
 
 }
