@@ -248,9 +248,6 @@ function extractContent2017(data, page, pageHeader, year) {
       //   '2 Independent',
       //   'Family',
       // ];
-
-// pay attention to ID: 02000035; ID: 02000085
-// most likely need to trim() every string
 function extractContent2016(data, page, pageHeader, year) {
   const keys = Object.keys(page)
     .sort((a, b) => parseFloat(a) - parseFloat(b))
@@ -326,11 +323,55 @@ function extractContent2016(data, page, pageHeader, year) {
 }
 
 function groomingRowContent(text) {
-  return text
+  const content = text
     .trim()
-    .split('  ')
+    .split('  ') // split by 2 spaces
     .filter((item) => item.length > 0)
-    .map((item) => item.trim());
+    .reduce((res, item) => {
+      const trimmed = item.trim();
+      if(contentPattern.twoNums.test(trimmed)) {
+        // ID: 01000232, 01000244, 01000253, 3455052, 3459001, 60000375, 60001091, 80000196, 9055094, 99000062
+        // Above data entries from 2016 are a sample of data that have 2 consecutive numbers in the same string separated by a space.
+        const matched = trimmed.match(contentPattern.twoNums);
+        res.push(matched[1], matched[2]);
+      } else if(trimmed.includes('Employer/Employ') || trimmed.includes('College/Univers')) {
+        // Employer/Employ Constructed for
+        // Employer/Employ Health Care
+        // College/Univers School
+        // College/Univers Constructed for
+        // College/Univers Government
+        // College/Univers Converted
+        // College/Univers Modular
+        // College/Univers Converted House
+        // These two strings' are 15.
+        const index = trimmed.includes('Employer/Employ') ? trimmed.indexOf('Employer/Employ') : trimmed.indexOf('College/Univers');
+        const noEmpCategory = trimmed.substring(0, index + 15);
+        const site = trimmed.substring(index + 16);
+        res.push(noEmpCategory, site);
+      } else {
+        res.push(trimmed);
+      }
+
+      return res;
+    }, []);
+  
+  if (content.length === 17) {
+    // ID: 10000099, 16000139, 26001043, etc. from 2016
+    return [
+      content[0],
+      `${content[1]} ${content[2]}`,
+      ...content.slice(3),
+    ];
+  } else if (content.length === 18) {
+    // ID: 59000066 from 2016
+    return [
+      content[0],
+      `${content[1]} ${content[2]} ${content[3]}`,
+      ...content.slice(4),
+    ];
+  }
+
+  return content;
 }
 
 function fillMissingCol(content, year) {
@@ -376,13 +417,6 @@ function fillMissingCol(content, year) {
         content[content.length - 1],
       ];
     }
-  } else if(content.length === 17) {
-    return [
-      content[0],
-      `${content[1]} ${content[2]}`,
-      ...content.slice(3, 4),
-      ...content.slice(5),
-    ];
   } else {
     console.warn(
       `Outlier: length is ${content.length}. ID is ${content[0]}. Year: ${year}`

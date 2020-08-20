@@ -53,7 +53,10 @@ function extractHeader2016(page) {
     .split('  ');
   const rawCounty = countyLine[1] || countyLine[0];
   const matched = rawCounty.match(headerPattern2016.county.pattern);
-  let county = matched[1];
+  let county = matched[1]
+    .split(' ')
+    .map((item) => `${item[0]}${item.substring(1).toLowerCase()}`)
+    .join(' ');
 
   console.assert(county.length !== 0, `county not found on page ${pageNo}`);
 
