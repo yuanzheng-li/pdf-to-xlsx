@@ -71,7 +71,7 @@ async function transform(files) {
   }
 }
 
-// const files = getFiles(2016, 2016);
-const files = getFiles(2019, 2019);
+const files = getFiles(2016, 2016);
+// const files = getFiles(2019, 2019);
 transform(files);
 

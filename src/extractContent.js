@@ -45,6 +45,7 @@ function extractContent2017(data, page, pageHeader, year) {
         `Did not find the main row with data on page ${pageHeader.pageNo} and row ${key}`
       );
 
+      // The following for loop is concatenating multi-line data based on their x position.
       for (let i = 1; i < curContent.length; i++) {
         const prevItem = _.find(prevContent, { x: curContent[i].x });
         console.assert(
@@ -155,6 +156,7 @@ function extractContent2017(data, page, pageHeader, year) {
 //    1. 1st item has text with data except SCC
 //    2. 2nd item has text with only SCC
 // 2nd row of 1st content is at 6.63. It's an array of only 1 item.
+
 // The text of the item has type info and possibly operation name, category operation, and operation site.
 // There are 2 types of type info:
 //    1. "1-STAR H". We need to get "1" and "H".
@@ -163,18 +165,235 @@ function extractContent2017(data, page, pageHeader, year) {
 //    ,#/&'-
 // Category Operation could contain special characters:
 //    /
+// Category Operation 'Community Service Agency' and 'Community College' only have 'Community' on the 1st line of a data entry.
+// College/Univers
+// ity
+// Parent
+// Co-op/Group
 
-// How to handle missing operation site?
+// How to handle missing operation site? content length is 15. Last string is pattern of No. Word (1 Independent). length is 16 after split 1 Independent.
+//    [
+      //   "12000380",
+      //   "LYNN'S HOME DAYCARE",
+      //   "10",
+      //   "(1)",
+      //   "1",
+      //   "0",
+      //   "0",
+      //   "1",
+      //   "0",
+      //   "0",
+      //   "2",
+      //   "4",
+      //   "8",
+      //   "8",
+      //   "1 Independent",
+      // ]
 //    ID: 12000380; ID: 12000381; ID:41001816; ID: 60002276
-// How to handle missing operation site and category operation?
+// How to handle missing operation site and category operation? content length is 15. Last string is a number (No. emp).
+      // [
+      //   '53000329',
+      //   'DEEP RIVER ACADEMY',
+      //   '8',
+      //   '(1)',
+      //   '0',
+      //   '1',
+      //   '1',
+      //   '4',
+      //   '1',
+      //   '0',
+      //   '6',
+      //   '13',
+      //   '29',
+      //   '29',
+      //   '2',
+      // ];
 //    ID: 53000329; ID: 60003551; ID: 60003581
-// How to handle missing category operation?
+// How to handle missing category operation? content length is 16. Last string is operation site.
+//    [
+    //   "60003701",
+    //   "MEENA'S HOME DAYCARE",
+    //   "7",
+    //   "(1)",
+    //   "3",
+    //   "0",
+    //   "1",
+    //   "0",
+    //   "0",
+    //   "0",
+    //   "0",
+    //   "4",
+    //   "8",
+    //   "8",
+    //   "1",
+    //   "Family",
+    // ]
 //    ID: 60003701; ID: 60003337; ID: 60003389; ID: 60003718
+// normal content length is 16. Length is 17 after split 1 Independent.
+      // [
+      //   '60003620',
+      //   "ANGIE'S LITTLE ANGELS",
+      //   '7',
+      //   '(1)',
+      //   '0',
+      //   '1',
+      //   '2',
+      //   '1',
+      //   '0',
+      //   '0',
+      //   '0',
+      //   '4',
+      //   '8',
+      //   '8',
+      //   '2 Independent',
+      //   'Family',
+      // ];
 
 // pay attention to ID: 02000035; ID: 02000085
 // most likely need to trim() every string
 function extractContent2016(data, page, pageHeader, year) {
+  const keys = Object.keys(page)
+    .sort((a, b) => parseFloat(a) - parseFloat(b))
+    .filter((key) => parseFloat(key) > 5);
 
+  keys.forEach((key, index) => {
+    const curRow = _.uniqBy(page[key], 'x');
+    console.assert(
+      !_.isUndefined(curRow),
+      `content not found on page ${pageHeader.pageNo}`
+    );
+    const item = {};
+    const curContent = groomingRowContent(curRow[0].text);
+
+    // curRow is the 2nd row of each data entry.
+    if (isCurContentSecondLine(curContent)) {
+      const matched = curContent[0].match(contentPattern.type);
+      let qris = '';
+      let type = '';
+      if (!_.isUndefined(matched[1]) && !_.isUndefined(matched[2])) {
+        qris = parseInt(matched[1]);
+        type = matched[2];
+      } else {
+        type = matched[0];
+      }
+
+      // prevRow is the 1st row of each data entry.
+      const prevRow = page[keys[index - 1]];
+      console.assert(
+        !_.isUndefined(prevRow),
+        `Did not find the main row with data for row ${keys[index - 1]} on page ${pageHeader.pageNo}`
+      );
+      const prevContent = prevRow
+        ? fillMissingCol(groomingRowContent(prevRow[0].text), year)
+        : [];
+
+      // TODO: concatenate multi-line Category Operation and Operation Site
+      // Only concatenate Operation Name
+      // If the 2nd item in curContent is not (2), it's operation name
+      if(curContent[1] !== '(2)') {
+        if(prevContent[1]) {
+          prevContent[1] = `${prevContent[1]} ${curContent[1]}`;
+        }
+      }
+
+      const sccObj = prevRow[1];
+      console.assert(
+        !_.isUndefined(sccObj),
+        `Did not find the SCC for data entry for ID ${prevContent[0]} on row ${keys[index - 1]} on page ${pageHeader.pageNo}`
+      );
+
+      const scc = sccObj ? sccObj.text.trim() : '';
+      prevContent.push(scc);
+
+      // TODO: pay attention when parsing data from other years
+      if (contentPattern.id.test(prevContent[0])) {
+        prevContent.forEach((value, index) => {
+          if (columns[index].int) {
+            value = parseInt(value);
+          }
+          item[columns[index].key] = value;
+        });
+
+        item.county = pageHeader.county;
+        item.year = year;
+        item.qris = qris;
+        item.type = type;
+      }
+
+      data.push(item);
+    }
+  });
+}
+
+function groomingRowContent(text) {
+  return text
+    .trim()
+    .split('  ')
+    .filter((item) => item.length > 0)
+    .map((item) => item.trim());
+}
+
+function fillMissingCol(content, year) {
+  if(content.length === 15) {
+    const last = content[content.length - 1];
+    if(contentPattern.noEmpCatOper.test(last)) {
+      // missing operation site
+      const matched = last.match(contentPattern.noEmpCatOper);
+      return [
+        ...content.slice(0, 3),
+        ...content.slice(4, content.length - 1),
+        matched[1],
+        matched[2],
+        '',
+      ];
+    } else {
+      // missing operation site and category operation
+      return [
+        ...content.slice(0, 3),
+        ...content.slice(4),
+        '',
+        '',
+      ];
+    }
+  } else if(content.length === 16) {
+    const secondLast = content[content.length - 2];
+    if (contentPattern.noEmpCatOper.test(secondLast)) {
+      // normal
+      const matched = secondLast.match(contentPattern.noEmpCatOper);
+      return [
+        ...content.slice(0, 3),
+        ...content.slice(4, content.length - 2),
+        matched[1],
+        matched[2],
+        content[content.length - 1],
+      ];
+    } else {
+      // missing category operation
+      return [
+        ...content.slice(0, 3),
+        ...content.slice(4, content.length - 1),
+        '',
+        content[content.length - 1],
+      ];
+    }
+  } else if(content.length === 17) {
+    return [
+      content[0],
+      `${content[1]} ${content[2]}`,
+      ...content.slice(3, 4),
+      ...content.slice(5),
+    ];
+  } else {
+    console.warn(
+      `Outlier: length is ${content.length}. ID is ${content[0]}. Year: ${year}`
+    );
+    return content;
+  }
+}
+
+function isCurContentSecondLine(curContent) {
+  const discard = curContent.find((item) => item === '(3)');
+  return contentPattern.type.test(curContent[0]) && _.isUndefined(discard);
 }
 
 module.exports = {
