@@ -334,6 +334,10 @@ function groomingRowContent(text) {
         // Above data entries from 2016 are a sample of data that have 2 consecutive numbers in the same string separated by a space.
         const matched = trimmed.match(contentPattern.twoNums);
         res.push(matched[1], matched[2]);
+      } else if(contentPattern.threeNums.test(trimmed)) {
+        // ID: 65000903 from 2015
+        const matched = trimmed.match(contentPattern.threeNums);
+        res.push(matched[1], matched[2], matched[3]);
       } else if(trimmed.includes('Employer/Employ') || trimmed.includes('College/Univers')) {
         // Employer/Employ Constructed for
         // Employer/Employ Health Care
