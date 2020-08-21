@@ -3,6 +3,7 @@
 const _ = require('lodash');
 
 const { headerPattern2017, headerPattern2016 } = require('./headerPattern');
+const concatenateRowText = require('./utils');
 
 /**
  * before 2016, the county only takes up 1 line
@@ -48,9 +49,9 @@ function extractHeader2016(page) {
   // There is only one item on county.row. The county is the 2nd item after split the text.
   // Only the 100th county need to be splited by one space character. If split by 2 spaces, it will be in the 1st item of the splited array
   // and the 2nd item is an empty string.
-  const countyLine = page[headerPattern2016.county.row][0].text
-    .trim()
-    .split('  ');
+  const countyRow = page[headerPattern2016.county.row];
+  
+  const countyLine = concatenateRowText(countyRow).trim().split('  ');
   const rawCounty = countyLine[1] || countyLine[0];
   const matched = rawCounty.match(headerPattern2016.county.pattern);
   let county = matched[1]

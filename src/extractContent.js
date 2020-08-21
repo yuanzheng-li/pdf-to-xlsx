@@ -3,6 +3,7 @@ const _ = require('lodash');
 
 const contentPattern = require('./contentPattern');
 const columns = require('./worksheetColumns');
+const concatenateRowText = require('./utils');
 
 // 1st row of 1st content is at 7.42. It's an array of needed 18 items.
 // 2nd row of 1st content is at 7.89. It's an array of only 1 string. There are two types of the string.
@@ -154,6 +155,7 @@ function extractContent2017(data, page, pageHeader, year) {
 // 2010 to 2006 same as 2016
 
 // 2005 main data row array could be any length. 2nd row of data could be any length.
+// ID: 96000237
 
 /**
  * 2016 and earlier, 5-STAR
@@ -178,7 +180,7 @@ function extractContent2017(data, page, pageHeader, year) {
 // Parent
 // Co-op/Group
 
-// How to handle missing operation site? content length is 15. Last string is pattern of No. Word (1 Independent). length is 16 after split 1 Independent.
+// How to handle missing operation site? content length is 16. Second last string is pattern of No. Word (1 Independent). length is 17 after split 1 Independent.
 //    [
       //   "12000380",
       //   "LYNN'S HOME DAYCARE",
@@ -195,9 +197,10 @@ function extractContent2017(data, page, pageHeader, year) {
       //   "8",
       //   "8",
       //   "1 Independent",
+      //   "Y"
       // ]
 //    ID: 12000380; ID: 12000381; ID:41001816; ID: 60002276
-// How to handle missing operation site and category operation? content length is 15. Last string is a number (No. emp).
+// How to handle missing operation site and category operation? content length is 16. Second last string is a number (No. emp).
       // [
       //   '53000329',
       //   'DEEP RIVER ACADEMY',
@@ -214,9 +217,10 @@ function extractContent2017(data, page, pageHeader, year) {
       //   '29',
       //   '29',
       //   '2',
+      //   'Y'
       // ];
 //    ID: 53000329; ID: 60003551; ID: 60003581
-// How to handle missing category operation? content length is 16. Last string is operation site.
+// How to handle missing category operation? content length is 17. Second last string is operation site.
 //    [
     //   "60003701",
     //   "MEENA'S HOME DAYCARE",
@@ -234,9 +238,10 @@ function extractContent2017(data, page, pageHeader, year) {
     //   "8",
     //   "1",
     //   "Family",
+    //   "N"
     // ]
 //    ID: 60003701; ID: 60003337; ID: 60003389; ID: 60003718
-// normal content length is 16. Length is 17 after split 1 Independent.
+// normal content length is 17. Length is 18 after split 1 Independent.
       // [
       //   '60003620',
       //   "ANGIE'S LITTLE ANGELS",
@@ -254,6 +259,7 @@ function extractContent2017(data, page, pageHeader, year) {
       //   '8',
       //   '2 Independent',
       //   'Family',
+      //   'Y'
       // ];
 function extractContent2016(data, page, pageHeader, year) {
   const keys = Object.keys(page)
@@ -261,13 +267,15 @@ function extractContent2016(data, page, pageHeader, year) {
     .filter((key) => parseFloat(key) > 5);
 
   keys.forEach((key, index) => {
-    const curRow = _.uniqBy(page[key], 'x');
     console.assert(
-      !_.isUndefined(curRow),
+      !_.isUndefined(page[key]),
       `content not found on page ${pageHeader.pageNo}`
     );
+    const uniquedRow = _.uniqBy(page[key], 'x');
+    const curRowText = concatenateRowText(uniquedRow);
+    const curContent = groomingRowContent(curRowText, year);
+
     const item = {};
-    const curContent = groomingRowContent(curRow[0].text);
 
     // curRow is the 2nd row of each data entry.
     if (isCurContentSecondLine(curContent)) {
@@ -287,8 +295,9 @@ function extractContent2016(data, page, pageHeader, year) {
         !_.isUndefined(prevRow),
         `Did not find the main row with data for row ${keys[index - 1]} on page ${pageHeader.pageNo}`
       );
+      const prevRowText = concatenateRowText(prevRow);
       const prevContent = prevRow
-        ? fillMissingCol(groomingRowContent(prevRow[0].text), year)
+        ? fillMissingCol(groomingRowContent(prevRowText, year), year)
         : [];
 
       // TODO: concatenate multi-line Category Operation and Operation Site
@@ -299,15 +308,6 @@ function extractContent2016(data, page, pageHeader, year) {
           prevContent[1] = `${prevContent[1]} ${curContent[1]}`;
         }
       }
-
-      const sccObj = prevRow[1];
-      console.assert(
-        !_.isUndefined(sccObj),
-        `Did not find the SCC for data entry for ID ${prevContent[0]} on row ${keys[index - 1]} on page ${pageHeader.pageNo}`
-      );
-
-      const scc = sccObj ? sccObj.text.trim() : '';
-      prevContent.push(scc);
 
       // TODO: pay attention when parsing data from other years
       if (contentPattern.id.test(prevContent[0])) {
@@ -329,7 +329,7 @@ function extractContent2016(data, page, pageHeader, year) {
   });
 }
 
-function groomingRowContent(text) {
+function groomingRowContent(text, year) {
   const content = text
     .trim()
     .split('  ') // split by 2 spaces
@@ -365,15 +365,23 @@ function groomingRowContent(text) {
 
       return res;
     }, []);
-  
-  if (content.length === 17) {
-    // ID: 10000099, 16000139, 26001043, etc. from 2016
+
+  // TODO: More robust approach: Get the index(i) of the first number after the operation name, merge all items between index 1 and index i.
+  if(content.length === 17 && content[0] === '96000237' && year === 2005) {
+    // ID: 96000237 from 2005
     return [
       content[0],
       `${content[1]} ${content[2]}`,
       ...content.slice(3),
     ];
   } else if (content.length === 18) {
+    // ID: 10000099, 16000139, 26001043, etc. from 2016
+    return [
+      content[0],
+      `${content[1]} ${content[2]}`,
+      ...content.slice(3),
+    ];
+  } else if (content.length === 19) {
     // ID: 59000066 from 2016
     return [
       content[0],
@@ -386,46 +394,48 @@ function groomingRowContent(text) {
 }
 
 function fillMissingCol(content, year) {
-  if(content.length === 15) {
-    const last = content[content.length - 1];
-    if(contentPattern.noEmpCatOper.test(last)) {
-      // missing operation site
-      const matched = last.match(contentPattern.noEmpCatOper);
-      return [
-        ...content.slice(0, 3),
-        ...content.slice(4, content.length - 1),
-        matched[1],
-        matched[2],
-        '',
-      ];
-    } else {
-      // missing operation site and category operation
-      return [
-        ...content.slice(0, 3),
-        ...content.slice(4),
-        '',
-        '',
-      ];
-    }
-  } else if(content.length === 16) {
+  if(content.length === 16) {
     const secondLast = content[content.length - 2];
-    if (contentPattern.noEmpCatOper.test(secondLast)) {
-      // normal
+    if(contentPattern.noEmpCatOper.test(secondLast)) {
+      // missing operation site
       const matched = secondLast.match(contentPattern.noEmpCatOper);
       return [
         ...content.slice(0, 3),
         ...content.slice(4, content.length - 2),
         matched[1],
         matched[2],
+        '',
         content[content.length - 1],
+      ];
+    } else {
+      // missing operation site and category operation
+      return [
+        ...content.slice(0, 3),
+        ...content.slice(4, content.length - 1),
+        '',
+        '',
+        content[content.length - 1],
+      ];
+    }
+  } else if(content.length === 17) {
+    const thirdLast = content[content.length - 3];
+    if (contentPattern.noEmpCatOper.test(thirdLast)) {
+      // normal
+      const matched = thirdLast.match(contentPattern.noEmpCatOper);
+      return [
+        ...content.slice(0, 3),
+        ...content.slice(4, content.length - 3),
+        matched[1],
+        matched[2],
+        ...content.slice(content.length - 2),
       ];
     } else {
       // missing category operation
       return [
         ...content.slice(0, 3),
-        ...content.slice(4, content.length - 1),
+        ...content.slice(4, content.length - 2),
         '',
-        content[content.length - 1],
+        ...content.slice(content.length - 2),
       ];
     }
   } else {
