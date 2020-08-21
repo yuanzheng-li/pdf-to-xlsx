@@ -19,6 +19,7 @@ function extractData(pages, year) {
     }
   });
 
+  console.info('There are %d data entries for Year %d', data.length, year);
   return data;
 }
 
@@ -35,7 +36,7 @@ function parseData(pages, year) {
       if (_.isUndefined(page[headerPattern2016.detail.row])) {
         return false;
       }
-      
+
       return headerPattern2016.detail.pattern.test(
         page[headerPattern2016.detail.row][0].text
       );
@@ -95,7 +96,7 @@ function readPdf(buffer) {
 
 module.exports = async function parse(buffer, year) {
   const pages = await readPdf(buffer);
-  console.info('Read %d pages', pages.length);
+  console.info('Read %d pages for Year %d', pages.length, year);
   const parsedData = parseData(pages, year);
   return parsedData;
 };
