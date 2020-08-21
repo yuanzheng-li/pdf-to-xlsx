@@ -32,6 +32,10 @@ function parseData(pages, year) {
     if(year > 2016) {
       return headerPattern2017.detail.pattern.test(page[headerPattern2017.detail.row][0].text);
     } else {
+      if (_.isUndefined(page[headerPattern2016.detail.row])) {
+        return false;
+      }
+      
       return headerPattern2016.detail.pattern.test(
         page[headerPattern2016.detail.row][0].text
       );

@@ -148,6 +148,13 @@ function extractContent2017(data, page, pageHeader, year) {
   });
 }
 
+// 2014 to 2011. The main data row is an array of 3 items, we need to concatenate the text of all items and (1) split
+// OR (2) make it the same as the structure of 2016.
+
+// 2010 to 2006 same as 2016
+
+// 2005 main data row array could be any length. 2nd row of data could be any length.
+
 /**
  * 2016 and earlier, 5-STAR
  * 2016 and earlier, operation name can take up 3 lines. It's fine to extract only 2 lines.
