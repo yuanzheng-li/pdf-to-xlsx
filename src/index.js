@@ -5,25 +5,32 @@ const parse = require('./parser');
 const write = require('./writer');
 const Bufferer = require('./bufferer');
 
-function getFiles(startYear, endYear) {
+function getFiles(...years) {
+  const argsLen = years.length;
+
+  if(argsLen < 1 || argsLen > 2) {
+    console.error('Only 1 or 2 arguments are allowed.');
+    process.exit(1);
+  }
+
+  if(years.some((year) => (year < 2005 || year > 2019))) {
+    console.error('Year not valid');
+    process.exit(1);
+  }
+
+  let startYear = 2005;
+  let endYear = 2019;
+  
+  if(argsLen === 2) {
+    startYear = Math.min(...years);
+    endYear = Math.max(...years);
+  } else if(argsLen === 1) {
+    startYear = years[0];
+  }
+
   const files = [];
 
-  if(startYear < 2005 || startYear > 2019) {
-    console.error('start year not valid');
-    return files;
-  }
-
-  if(endYear < 2005 || endYear > 2019) {
-    console.error('end year not valid');
-    return files;
-  }
-
-  if(endYear < startYear) {
-    console.error('end year is earlier than start year');
-    return files;
-  }
-
-  for(let i = endYear; i >= startYear; i--) {
+  for (let i = endYear; i >= startYear; i--) {
     files.push({
       name: `./NC-pdf/statistical_detail_report_september_${i}.pdf`,
       year: i,
