@@ -1,10 +1,4 @@
-*.xlsx
-*.pdf
-*.json
-/node_modules
-commentout.js
-*.py
+node_modules/
 .vscode/
-*.log
-/NC-pdf
-/NC-excel
+NC-pdf/
+result/
