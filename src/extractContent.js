@@ -12,7 +12,7 @@ const concatenateRowText = require('./utils');
 //      year: 2019; ID:73000237 has GS110SP
 
 // 1st row of 1st content is at 9.72. 2nd row of 1st content is at 10.19
-function extractContent2017(data, page, pageHeader, year) {
+function extractContent2017(data, page, pageHeader, options) {
   const keys = Object.keys(page)
     .sort((a, b) => parseFloat(a) - parseFloat(b))
     .filter((key) => parseFloat(key) > 7);
@@ -63,7 +63,7 @@ function extractContent2017(data, page, pageHeader, year) {
       if (contentPattern.id.test(prevContent[0].text)) {
         if (prevContent.length !== 18) {
           console.warn(
-            `Outlier: length is ${prevContent.length}. ID is ${prevContent[0].text}. Year: ${year}`
+            `Outlier: length is ${prevContent.length}. ID is ${prevContent[0].text}. Month: ${options.month}, Year: ${options.year}`
           );
         }
         let usefulContent = [];
@@ -139,7 +139,8 @@ function extractContent2017(data, page, pageHeader, year) {
         });
 
         item.county = pageHeader.county;
-        item.year = year;
+        item.year = options.year;
+        item.month = options.month;
         item.qris = qris;
         item.type = type;
       }
@@ -261,7 +262,7 @@ function extractContent2017(data, page, pageHeader, year) {
       //   'Family',
       //   'Y'
       // ];
-function extractContent2016(data, page, pageHeader, year) {
+function extractContent2016(data, page, pageHeader, options) {
   const keys = Object.keys(page)
     .sort((a, b) => parseFloat(a) - parseFloat(b))
     .filter((key) => parseFloat(key) > 5);
@@ -273,7 +274,7 @@ function extractContent2016(data, page, pageHeader, year) {
     );
     const uniquedRow = _.uniqBy(page[key], 'x');
     const curRowText = concatenateRowText(uniquedRow);
-    const curContent = groomingRowContent(curRowText, year);
+    const curContent = groomingRowContent(curRowText, options);
 
     const item = {};
 
@@ -297,7 +298,7 @@ function extractContent2016(data, page, pageHeader, year) {
       );
       const prevRowText = concatenateRowText(prevRow);
       const prevContent = prevRow
-        ? fillMissingCol(groomingRowContent(prevRowText, year), year)
+        ? fillMissingCol(groomingRowContent(prevRowText, options), options)
         : [];
 
       // TODO: concatenate multi-line Category Operation and Operation Site
@@ -319,7 +320,8 @@ function extractContent2016(data, page, pageHeader, year) {
         });
 
         item.county = pageHeader.county;
-        item.year = year;
+        item.year = options.year;
+        item.month = options.month;
         item.qris = qris;
         item.type = type;
       }
@@ -329,7 +331,7 @@ function extractContent2016(data, page, pageHeader, year) {
   });
 }
 
-function groomingRowContent(text, year) {
+function groomingRowContent(text, options) {
   const content = text
     .trim()
     .split('  ') // split by 2 spaces
@@ -367,7 +369,7 @@ function groomingRowContent(text, year) {
     }, []);
 
   // TODO: More robust approach: Get the index(i) of the first number after the operation name, merge all items between index 1 and index i.
-  if(content.length === 17 && content[0] === '96000237' && year === 2005) {
+  if(content.length === 17 && content[0] === '96000237' && options.year === 2005) {
     // ID: 96000237 from 2005
     return [
       content[0],
@@ -393,7 +395,7 @@ function groomingRowContent(text, year) {
   return content;
 }
 
-function fillMissingCol(content, year) {
+function fillMissingCol(content, options) {
   if(content.length === 16) {
     const secondLast = content[content.length - 2];
     if(contentPattern.noEmpCatOper.test(secondLast)) {
@@ -440,7 +442,7 @@ function fillMissingCol(content, year) {
     }
   } else {
     console.warn(
-      `Outlier: length is ${content.length}. ID is ${content[0]}. Year: ${year}`
+      `Outlier: length is ${content.length}. ID is ${content[0]}. Month: ${options.month}, Year: ${options.year}`
     );
     return content;
   }

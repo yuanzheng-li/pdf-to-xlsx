@@ -120,6 +120,12 @@ const columns = [
     width: 10,
     int: true,
   },
+  {
+    header: 'month',
+    key: 'month',
+    width: 10,
+    int: true,
+  },
 ];
 
 module.exports = columns;

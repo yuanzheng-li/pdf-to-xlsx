@@ -28,12 +28,14 @@ const headerPattern2016 = {
   // We use whether line 4.38 has ID/ or not to determine whether its detail or summary page
   detail: {
     row: 4.38,
+    altRow: 4.27,
     pattern: /ID\//i,
   },
   // county is all uppercase, and we want only the first of each word to be uppercase
   county: {
     row: 2.13,
-    pattern: /\d\s([\w|\s]+)/i
+    altRow: 2.08,
+    pattern: /\d\s*([\w|\s]+)/i
   },
 };
 

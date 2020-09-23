@@ -5,44 +5,74 @@ const parse = require('./parser');
 const write = require('./writer');
 const Bufferer = require('./bufferer');
 
-function getFiles(...years) {
-  const argsLen = years.length;
+function getFiles({years, allMonths}) {
+  const yearsLen = years.length;
 
-  if(argsLen < 1 || argsLen > 2) {
+  if(yearsLen < 1 || yearsLen > 2) {
     console.error('Only 1 or 2 arguments are allowed.');
     process.exit(1);
   }
 
-  if(years.some((year) => (year < 2005 || year > 2019))) {
+  if(years.some((year) => (year < 2005 || year > 2020))) {
     console.error('Year not valid');
     process.exit(1);
   }
 
   let startYear = 2005;
-  let endYear = 2019;
+  let endYear = 2020;
   
-  if(argsLen === 2) {
+  if(yearsLen === 2) {
     startYear = Math.min(...years);
     endYear = Math.max(...years);
-  } else if(argsLen === 1) {
+  } else if(yearsLen === 1) {
     startYear = years[0];
   }
 
   const files = [];
 
-  for (let i = endYear; i >= startYear; i--) {
-    files.push({
-      name: `./NC-pdf/statistical_detail_report_september_${i}.pdf`,
-      year: i,
-    });
+  for (let year = endYear; year >= startYear; year--) {
+    if(allMonths) {
+      const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+      // feb 2017 and july 2017 have NaN and problem with county name. Others have problem with county name.
+      const oldFormat = {
+        april_2017: true,
+        august_2017: true,
+        december_2017: true,
+        february_2017: true,
+        july_2017: true,
+        june_2017: true,
+        march_2017: true,
+        may_2017: true,
+      };
+      let endMonth = 12;
+      if(year === 2020) {
+        endMonth = 8;
+      }
+
+      for(let month = 1; month <= endMonth; month++) {
+        files.push({
+          name: `./NC-pdf/statistical_detail_report_${months[month - 1]}_${year}.pdf`,
+          year: year,
+          month: month,
+          isOldFormat: oldFormat[`${months[month - 1]}_${year}`] || false
+        });
+      }
+    } else {
+      files.push({
+        name: `./NC-pdf/statistical_detail_report_september_${year}.pdf`,
+        year: year,
+        month: 9,
+        isOldFormat: year > 2016 ? false : true,
+      });
+    }
   }
 
   return files;
 }
 
-function parseAndConcat(dataAll, year) {
+function parseAndConcat(dataAll, options) {
   return async (buffer) => {
-    const dataPerFile = await parse(buffer, year);
+    const dataPerFile = await parse(buffer, options);
     dataAll.push(...dataPerFile);
   };
 }
@@ -56,7 +86,11 @@ async function transform(files) {
     return new Promise((resolve, reject) => {
       const reader = createReadStream(file.name);
       const bufferer = new Bufferer({
-        onEnd: parseAndConcat(dataAll, file.year),
+        onEnd: parseAndConcat(dataAll, {
+          year: file.year,
+          month: file.month,
+          isOldFormat: file.isOldFormat,
+        }),
       });
 
       reader
@@ -78,6 +112,9 @@ async function transform(files) {
   }
 }
 
-const files = getFiles(2005, 2019);
+const files = getFiles({
+  years: [2017, 2017],
+  allMonths: true,
+});
 transform(files);
 

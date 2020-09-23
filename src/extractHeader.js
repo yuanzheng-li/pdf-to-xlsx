@@ -44,15 +44,22 @@ function extractHeader2017(page) {
 }
 
 function extractHeader2016(page) {
-  const pageNo = page['1.00'][1].text.trim();
+  // Feb 2017 only has 1 item in the page[1.00] and the page number is the last in the text.
+  let pageNo;
+  if(page['1.00'][1]) {
+    pageNo = page['1.00'][1].text.trim();
+  } else {
+    const firstLine = page['1.00'][0].text.trim().split('  ');
+    pageNo = firstLine[firstLine.length - 1];
+  }
 
   // There is only one item on county.row. The county is the 2nd item after split the text.
   // Only the 100th county need to be splited by one space character. If split by 2 spaces, it will be in the 1st item of the splited array
   // and the 2nd item is an empty string.
-  const countyRow = page[headerPattern2016.county.row];
+  const countyRow = page[headerPattern2016.county.row] || page[headerPattern2016.county.altRow];
   
   const countyLine = concatenateRowText(countyRow).trim().split('  ');
-  const rawCounty = countyLine[1] || countyLine[0];
+  const rawCounty = countyLine[1].trim() || countyLine[0].trim();
   const matched = rawCounty.match(headerPattern2016.county.pattern);
   let county = matched[1]
     .split(' ')
