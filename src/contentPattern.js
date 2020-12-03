@@ -7,6 +7,7 @@ const contentPattern = {
   noEmpCatOper: /^(\d+)\s+([a-zA-Z\/\s]+)/i,
   twoNums: /^(\d+)\s+(\d+)$/i,
   threeNums: /^(\d+)\s+(\d+)\s+(\d+)$/i,
+  numNoEmpCatOper: /^(\d+)\s+(\d+[a-zA-Z\/\s]+)/i,
 };
 
 module.exports = contentPattern;

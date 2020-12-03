@@ -348,6 +348,8 @@ function groomingRowContent(text, options) {
         const matched = trimmed.match(contentPattern.threeNums);
         res.push(matched[1], matched[2], matched[3]);
       } else if(trimmed.includes('Employer/Employ') || trimmed.includes('College/Univers')) {
+        // Example of data entry: 1 Employer/Employ School.
+        // The purpose of this if block: separate the above data entry to '1 Employer/Employ' and 'School'.
         // Employer/Employ Constructed for
         // Employer/Employ Health Care
         // College/Univers School
@@ -356,11 +358,15 @@ function groomingRowContent(text, options) {
         // College/Univers Converted
         // College/Univers Modular
         // College/Univers Converted House
-        // These two strings' are 15.
+        // These two strings (Employer/Employ and College/Univers) are 15.
         const index = trimmed.includes('Employer/Employ') ? trimmed.indexOf('Employer/Employ') : trimmed.indexOf('College/Univers');
         const noEmpCategory = trimmed.substring(0, index + 15);
         const site = trimmed.substring(index + 16);
         res.push(noEmpCategory, site);
+      } else if(contentPattern.numNoEmpCatOper.test(trimmed)) {
+        // ID: 01000547 from Feb 2017
+        const matched = trimmed.match(contentPattern.numNoEmpCatOper);
+        res.push(matched[1], matched[2]);
       } else {
         res.push(trimmed);
       }

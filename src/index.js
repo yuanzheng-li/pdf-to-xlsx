@@ -5,11 +5,17 @@ const parse = require('./parser');
 const write = require('./writer');
 const Bufferer = require('./bufferer');
 
-function getFiles({years, allMonths}) {
+function getFiles({years = [2005, 2020], months = [1, 12]}) {
   const yearsLen = years.length;
+  const monthsLen = months.length;
 
   if(yearsLen < 1 || yearsLen > 2) {
-    console.error('Only 1 or 2 arguments are allowed.');
+    console.error('Only 1 or 2 arguments are allowed for years.');
+    process.exit(1);
+  }
+
+  if (monthsLen < 1 || monthsLen > 2) {
+    console.error('Only 1 or 2 arguments are allowed for months.');
     process.exit(1);
   }
 
@@ -18,51 +24,59 @@ function getFiles({years, allMonths}) {
     process.exit(1);
   }
 
-  let startYear = 2005;
-  let endYear = 2020;
+  if(months.some((month) => month < 1 || month > 12)) {
+    console.error('Month not valid');
+    process.exit(1);
+  }
+
+  let startYear;
+  let endYear;
+  let startMonth;
+  let endMonth;
   
   if(yearsLen === 2) {
     startYear = Math.min(...years);
     endYear = Math.max(...years);
   } else if(yearsLen === 1) {
     startYear = years[0];
+    endYear = 2020;
   }
 
+  if(monthsLen === 2) {
+    startMonth = Math.min(...months);
+    endMonth = Math.max(...months);
+  } else if(monthsLen === 1) {
+    startMonth = months[0];
+    endMonth = 12;
+  }
+
+  const monthMapping = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
   const files = [];
 
   for (let year = endYear; year >= startYear; year--) {
-    if(allMonths) {
-      const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
-      // feb 2017 and july 2017 have NaN and problem with county name. Others have problem with county name.
-      const oldFormat = {
-        april_2017: true,
-        august_2017: true,
-        december_2017: true,
-        february_2017: true,
-        july_2017: true,
-        june_2017: true,
-        march_2017: true,
-        may_2017: true,
-      };
-      let endMonth = 12;
-      if(year === 2020) {
-        endMonth = 8;
-      }
+    // feb 2017 and july 2017 have NaN and problem with county name. Others have problem with county name.
+    const oldFormat = {
+      april_2017: true,
+      august_2017: true,
+      december_2017: true,
+      february_2017: true,
+      july_2017: true,
+      june_2017: true,
+      march_2017: true,
+      may_2017: true,
+    };
 
-      for(let month = 1; month <= endMonth; month++) {
-        files.push({
-          name: `./NC-pdf/statistical_detail_report_${months[month - 1]}_${year}.pdf`,
-          year: year,
-          month: month,
-          isOldFormat: oldFormat[`${months[month - 1]}_${year}`] || false
-        });
-      }
-    } else {
+    // There are only 8 months of reports for 2020 so far.
+    if(year === 2020) {
+      endMonth = 11;
+    }
+
+    for(let month = startMonth; month <= endMonth; month++) {
       files.push({
-        name: `./NC-pdf/statistical_detail_report_september_${year}.pdf`,
+        name: `./NC-pdf/statistical_detail_report_${monthMapping[month - 1]}_${year}.pdf`,
         year: year,
-        month: 9,
-        isOldFormat: year > 2016 ? false : true,
+        month: month,
+        isOldFormat: oldFormat[`${monthMapping[month - 1]}_${year}`] || (year > 2016 ? false : true) || false
       });
     }
   }
@@ -114,7 +128,7 @@ async function transform(files) {
 
 const files = getFiles({
   years: [2017, 2017],
-  allMonths: true,
+  months: [2, 2],
 });
 transform(files);
 
