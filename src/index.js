@@ -66,11 +66,6 @@ function getFiles({years = [2005, 2020], months = [1, 12]}) {
       may_2017: true,
     };
 
-    // There are only 8 months of reports for 2020 so far.
-    if(year === 2020) {
-      endMonth = 11;
-    }
-
     for(let month = startMonth; month <= endMonth; month++) {
       files.push({
         name: `./NC-pdf/statistical_detail_report_${monthMapping[month - 1]}_${year}.pdf`,
@@ -127,8 +122,8 @@ async function transform(files) {
 }
 
 const files = getFiles({
-  years: [2017, 2017],
-  months: [2, 2],
+  years: [2020, 2020],
+  months: [12, 12],
 });
 transform(files);
 
