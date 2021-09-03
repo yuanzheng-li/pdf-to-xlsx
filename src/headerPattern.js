@@ -35,7 +35,7 @@ const headerPattern2016 = {
   county: {
     row: 2.13,
     altRow: 2.08,
-    pattern: /\d+\s*([\w|\s]+)/i
+    pattern: /\d+\s*([A-Z]+\s*(?!CHILD)[A-Z]*)/i,
   },
 };
 
