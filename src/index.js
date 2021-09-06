@@ -1,56 +1,61 @@
 'use strict';
 const { createReadStream } = require('fs');
+const argv = require('minimist')(process.argv.slice(2));
 
 const parse = require('./parser');
 const write = require('./writer');
 const Bufferer = require('./bufferer');
 
-function getFiles({years = [2005, 2020], months = [1, 12]}) {
-  const yearsLen = years.length;
-  const monthsLen = months.length;
+const EARLIEST_YEAR = 2005;
+const LATEST_YEAR = 2020;
+const EARLIEST_MONTH = 1;
+const LATEST_MONTH = 12;
 
-  if(yearsLen < 1 || yearsLen > 2) {
-    console.error('Only 1 or 2 arguments are allowed for years.');
+function getFiles({ startYear, endYear = LATEST_YEAR, startMonth, endMonth = LATEST_MONTH }) {
+  if (startYear < EARLIEST_YEAR || startYear > LATEST_YEAR) {
+    console.error('Start year not valid');
     process.exit(1);
   }
 
-  if (monthsLen < 1 || monthsLen > 2) {
-    console.error('Only 1 or 2 arguments are allowed for months.');
+  if (endYear < EARLIEST_YEAR || endYear > LATEST_YEAR) {
+    console.error('End year not valid');
     process.exit(1);
   }
 
-  if(years.some((year) => (year < 2005 || year > 2020))) {
-    console.error('Year not valid');
+  if (startMonth < EARLIEST_MONTH || startMonth > LATEST_MONTH) {
+    console.error('Start month not valid');
     process.exit(1);
   }
 
-  if(months.some((month) => month < 1 || month > 12)) {
-    console.error('Month not valid');
+  if (endMonth < EARLIEST_MONTH || endMonth > LATEST_MONTH) {
+    console.error('End month not valid');
     process.exit(1);
   }
 
-  let startYear;
-  let endYear;
-  let startMonth;
-  let endMonth;
-  
-  if(yearsLen === 2) {
-    startYear = Math.min(...years);
-    endYear = Math.max(...years);
-  } else if(yearsLen === 1) {
-    startYear = years[0];
-    endYear = 2020;
+  if (startYear > endYear) {
+    console.log(`Start year is ${startYear}. End year is ${endYear}. Start year is later than end year.`);
+    process.exit(1);
   }
 
-  if(monthsLen === 2) {
-    startMonth = Math.min(...months);
-    endMonth = Math.max(...months);
-  } else if(monthsLen === 1) {
-    startMonth = months[0];
-    endMonth = 12;
+  if (startMonth > endMonth) {
+    console.log(`Start month is ${startMonth}. End month is ${endMonth}. Start month is later than end month.`);
+    process.exit(1);
   }
 
-  const monthMapping = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+  const monthMapping = [
+    'january',
+    'february',
+    'march',
+    'april',
+    'may',
+    'june',
+    'july',
+    'august',
+    'september',
+    'october',
+    'november',
+    'december',
+  ];
   const files = [];
 
   for (let year = endYear; year >= startYear; year--) {
@@ -66,12 +71,12 @@ function getFiles({years = [2005, 2020], months = [1, 12]}) {
       may_2017: true,
     };
 
-    for(let month = startMonth; month <= endMonth; month++) {
+    for (let month = startMonth; month <= endMonth; month++) {
       files.push({
         name: `./NC-pdf/statistical_detail_report_${monthMapping[month - 1]}_${year}.pdf`,
         year: year,
         month: month,
-        isOldFormat: oldFormat[`${monthMapping[month - 1]}_${year}`] || (year > 2016 ? false : true) || false
+        isOldFormat: oldFormat[`${monthMapping[month - 1]}_${year}`] || (year > 2016 ? false : true) || false,
       });
     }
   }
@@ -102,10 +107,7 @@ async function transform(files) {
         }),
       });
 
-      reader
-        .pipe(bufferer)
-        .once('finish', resolve)
-        .once('error', reject);
+      reader.pipe(bufferer).once('finish', resolve).once('error', reject);
     });
   }, true);
 
@@ -121,9 +123,6 @@ async function transform(files) {
   }
 }
 
-const files = getFiles({
-  years: [2020, 2020],
-  months: [12, 12],
-});
+const files = getFiles(argv);
 transform(files);
 
