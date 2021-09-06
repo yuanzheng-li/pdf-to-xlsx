@@ -7,7 +7,7 @@ const concatenateRowText = require('./utils');
 
 /**
  * before 2016, the county only takes up 1 line
- * 
+ *
  */
 function extractHeader2017(page) {
   const pageNo = page['1.00'][1].text;
@@ -57,9 +57,9 @@ function extractHeader2016(page) {
   // Only the 100th county need to be splited by one space character. If split by 2 spaces, it will be in the 1st item of the splited array
   // and the 2nd item is an empty string.
   const countyRow = page[headerPattern2016.county.row] || page[headerPattern2016.county.altRow];
-  
+
   const countyLine = concatenateRowText(countyRow).trim().split('  ');
-  const rawCounty = countyLine[1].trim() || countyLine[0].trim();
+  const rawCounty = countyLine[1].trim() || countyLine[2].trim() || countyLine[0].trim();
   const matched = rawCounty.match(headerPattern2016.county.pattern);
   let county = matched[1]
     .split(' ')

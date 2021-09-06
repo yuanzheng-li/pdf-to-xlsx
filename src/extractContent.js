@@ -268,16 +268,12 @@ function extractContent2016(data, page, pageHeader, options) {
     .filter((key) => parseFloat(key) > 5);
 
   keys.forEach((key, index) => {
-    console.assert(
-      !_.isUndefined(page[key]),
-      `content not found on page ${pageHeader.pageNo}`
-    );
+    console.assert(!_.isUndefined(page[key]), `content not found on page ${pageHeader.pageNo}`);
     const uniquedRow = _.uniqBy(page[key], 'x');
     const curRowText = concatenateRowText(uniquedRow);
     const curContent = groomingRowContent(curRowText, options);
 
     const item = {};
-
     // curRow is the 2nd row of each data entry.
     if (isCurContentSecondLine(curContent)) {
       const matched = curContent[0].match(contentPattern.type);
@@ -297,15 +293,13 @@ function extractContent2016(data, page, pageHeader, options) {
         `Did not find the main row with data for row ${keys[index - 1]} on page ${pageHeader.pageNo}`
       );
       const prevRowText = concatenateRowText(prevRow);
-      const prevContent = prevRow
-        ? fillMissingCol(groomingRowContent(prevRowText, options), options)
-        : [];
+      const prevContent = prevRow ? fillMissingCol(groomingRowContent(prevRowText, options), options) : [];
 
       // TODO: concatenate multi-line Category Operation and Operation Site
       // Only concatenate Operation Name
       // If the 2nd item in curContent is not (2), it's operation name
-      if(curContent[1] !== '(2)') {
-        if(prevContent[1]) {
+      if (curContent[1] !== '(2)') {
+        if (prevContent[1]) {
           prevContent[1] = `${prevContent[1]} ${curContent[1]}`;
         }
       }
@@ -334,20 +328,20 @@ function extractContent2016(data, page, pageHeader, options) {
 function groomingRowContent(text, options) {
   const content = text
     .trim()
-    .split('  ') // split by 2 spaces
+    .split(/\s{2,}/) // split by 2 or more spaces
     .filter((item) => item.length > 0)
     .reduce((res, item) => {
       const trimmed = item.trim();
-      if(contentPattern.twoNums.test(trimmed)) {
+      if (contentPattern.twoNums.test(trimmed)) {
         // ID: 01000232, 01000244, 01000253, 3455052, 3459001, 60000375, 60001091, 80000196, 9055094, 99000062
         // Above data entries from 2016 are a sample of data that have 2 consecutive numbers in the same string separated by a space.
         const matched = trimmed.match(contentPattern.twoNums);
         res.push(matched[1], matched[2]);
-      } else if(contentPattern.threeNums.test(trimmed)) {
+      } else if (contentPattern.threeNums.test(trimmed)) {
         // ID: 65000903 from 2015
         const matched = trimmed.match(contentPattern.threeNums);
         res.push(matched[1], matched[2], matched[3]);
-      } else if(trimmed.includes('Employer/Employ') || trimmed.includes('College/Univers')) {
+      } else if (trimmed.includes('Employer/Employ') || trimmed.includes('College/Univers')) {
         // Example of data entry: 1 Employer/Employ School.
         // The purpose of this if block: separate the above data entry to '1 Employer/Employ' and 'School'.
         // Employer/Employ Constructed for
@@ -359,11 +353,13 @@ function groomingRowContent(text, options) {
         // College/Univers Modular
         // College/Univers Converted House
         // These two strings (Employer/Employ and College/Univers) are 15.
-        const index = trimmed.includes('Employer/Employ') ? trimmed.indexOf('Employer/Employ') : trimmed.indexOf('College/Univers');
+        const index = trimmed.includes('Employer/Employ')
+          ? trimmed.indexOf('Employer/Employ')
+          : trimmed.indexOf('College/Univers');
         const noEmpCategory = trimmed.substring(0, index + 15);
         const site = trimmed.substring(index + 16);
         res.push(noEmpCategory, site);
-      } else if(contentPattern.numNoEmpCatOper.test(trimmed)) {
+      } else if (contentPattern.numNoEmpCatOper.test(trimmed)) {
         // ID: 01000547 from Feb 2017
         const matched = trimmed.match(contentPattern.numNoEmpCatOper);
         res.push(matched[1], matched[2]);
@@ -375,27 +371,72 @@ function groomingRowContent(text, options) {
     }, []);
 
   // TODO: More robust approach: Get the index(i) of the first number after the operation name, merge all items between index 1 and index i.
-  if(content.length === 17 && content[0] === '96000237' && options.year === 2005) {
-    // ID: 96000237 from 2005
-    return [
-      content[0],
-      `${content[1]} ${content[2]}`,
-      ...content.slice(3),
-    ];
+  // content[0] === '97000017' || content[0] === '26000193' || content[0] === '26000109' || content[0] === '59000066' || content[0] === '10000099' || content[0] === '20000102'
+  if (content.length === 16) {
+    if (/\d+\s\(\d\)/.test(content[2])) {
+      return [...content.slice(0, 2), ...content[2].split(' '), ...content.slice(3)];
+    }
+
+    // ID and Operation name in content[0]
+    // e.g. ID: 01000622 from Feb 2017
+    const idOperationNameRegex = /(\d+)\s+([\w#\s\d]+)/i;
+    if (idOperationNameRegex.test(content[0])) {
+      const matched = content[0].match(idOperationNameRegex);
+      return [matched[1], matched[2], ...content.slice(1)];
+    }
+
+    // content[12] has 2 adjacent 3-digit number
+    // e.g. ID: 13000200 from Feb 2017
+    if (/\d{6}/.test(content[12])) {
+      return [...content.slice(0, 12), content[12].slice(0, 3), content[12].slice(3), ...content.slice(13)];
+    }
+  } else if (content.length === 17) {
+    if (content[0] === '96000237' && options.year === 2005) {
+      // ID: 96000237 from 2005
+      return [content[0], `${content[1]} ${content[2]}`, ...content.slice(3)];
+    }
+
+    if (content[0] === '97000017' && options.year === 2017 && options.month === 2) {
+      return [content[0], `${content[1]} ${content[2]}`, ...content[3].split(' '), ...content.slice(4)];
+    }
   } else if (content.length === 18) {
+    if (/^\d+$/.test(content[2])) {
+      // ID: 0159010 from Feb 2017
+      return [...content.slice(0, 14), `${content[14]}${content[15]}`, ...content.slice(16)];
+    }
     // ID: 10000099, 16000139, 26001043, etc. from 2016
-    return [
-      content[0],
-      `${content[1]} ${content[2]}`,
-      ...content.slice(3),
-    ];
+    return [content[0], `${content[1]} ${content[2]}`, ...content.slice(3)];
+    //TODO: ID: 13000087, 13000507, 16000120, 26001488, 26002209, 26002259, 2955087, 32001106, 32001582, 32001878, 34000420, 34000880, 3650311, 40000089, 41001161, 41001397, 41002062, 41002274, 47000124, 51000680, 51000797, 65000902, 68000417, 74000849, 76000291, 8155056, 90000132, 90000169, 92002210, 92002502, 92002942, 92003275, 96000341, 9955006 from Feb 2017
   } else if (content.length === 19) {
-    // ID: 59000066 from 2016
-    return [
-      content[0],
-      `${content[1]} ${content[2]} ${content[3]}`,
-      ...content.slice(4),
-    ];
+    if (content[0] === '26000193' && options.month === 2 && options.year === 2017) {
+      return [
+        content[0],
+        `${content[1]} ${content[2]}`,
+        ...content.slice(3, 13),
+        `${content[13]}${content[14]}`,
+        ...content.slice(15),
+      ];
+    } else if (content[0] === '92002286' && options.month === 2 && options.year === 2017) {
+      return [
+        content[0],
+        `${content[1]} ${content[2]}`,
+        ...content.slice(3, 14),
+        `${content[14]}${content[15]}`,
+        ...content.slice(16),
+      ];
+    } else if (/\d+/.test(content[16])) {
+      // ID: 59000066 from 2016
+      return [content[0], `${content[1]} ${content[2]} ${content[3]}`, ...content.slice(4)];
+    } else {
+      // ID: 10000099 from feb 2017
+      return [
+        content[0],
+        `${content[1]} ${content[2]}`,
+        ...content.slice(3, 15),
+        `${content[15]} ${content[16]}`,
+        ...content.slice(17),
+      ];
+    }
   }
 
   return content;
